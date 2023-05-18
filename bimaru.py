@@ -2,9 +2,9 @@
 # Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
 # Além das funções e classes já definidas, podem acrescentar outras que considerem pertinentes.
 
-# Grupo 00:
-# 00000 Nome1
-# 00000 Nome2
+# Grupo 28:
+# 102787 Ricardo Santos
+# 104195 Sofia Du
 
 import sys
 import numpy as np
@@ -53,8 +53,15 @@ class Board:
         self.rows = rows
         self.columns = cols
 
-    def place_piece(self, row: int, col: int, type: str):
-        if type = "."
+    def place_piece(self, row: int, col: int, piece: str):
+        self.board[row][col] = piece
+
+        # if 0 < row < 9:
+        #     if 0 < col < 9:
+        #         if piece == "T" or piece == "t":
+        #             self.board[row-1][col-1:col+2] = "."
+        #             self.board[row:row+2][col-1] = "."
+        #             self.board[row:row+2][col+1] = "."
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -85,18 +92,18 @@ class Board:
             > line = stdin.readline().split()
         """
 
-        parse_board = Board;
+        parse_board = Board();
 
         rows = sys.stdin.readline().split()[1::]
         cols = sys.stdin.readline().split()[1::]
         
-        parse_board.define_occupied(parse_board, rows, cols)
+        parse_board.define_occupied(rows, cols)
 
         hintnum = int(sys.stdin.readline())
 
         for i in range(hintnum):
             hint = sys.stdin.readline().split()
-            parse_board.place_piece(parse_board, int(hint[1]), int(hint[2]), hint[3])
+            parse_board.place_piece(int(hint[1]), int(hint[2]), hint[3])
 
 
         return parse_board

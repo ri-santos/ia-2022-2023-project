@@ -2,7 +2,7 @@ import numpy as np
 from sys import stdin
 
 if __name__ == "__main__":
-    board = np.full((10,10), dtype=np.str_, fill_value=".")
+    board = np.empty((10,10), dtype=np.str_)
     line1 = stdin.readline().split()[1::]
     line2 = stdin.readline().split()[1::]
     print(line1)
@@ -11,7 +11,21 @@ if __name__ == "__main__":
 
     for i in range(hintnum):
         hint = stdin.readline().split()
-        board[int(hint[1])][int(hint[2])] = hint[3]
+        row = int(hint[1])
+        col = int(hint[2])
+        piece = hint[3]
+        if piece.lower() == "t":
+            if 0 < row:
+                board[row-1][col-1:col+2] = "."
+            if row < 9:
+                board[row+1][col-1] = "."
+                board[row+1][col+1] = "."
+            if 0 < col:
+                board[row][col-1] = "."
+                board[row][col+1] = "."
+
+        
+        board[row][col] = piece
 
     
     boardstring = ""
