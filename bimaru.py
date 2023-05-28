@@ -21,39 +21,26 @@ from search import (
 )
 
 
-class BimaruState:
-    state_id = 0
-
-    def __init__(self, board):
-        self.board = board
-        self.id = BimaruState.state_id
-        BimaruState.state_id += 1
-
-    def __lt__(self, other):
-        return self.id < other.id
-
-    # TODO: outros metodos da classe
-
-
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
 
     def __init__(self) -> None:
-        self.board = np.empty((10,10), dtype=np.str_)
-        self.rows = []
-        self.columns = []
+        self.board = np.full((10,10), fill_value=' ' ,dtype=np.str_)
+        self.rows = np.empty(10)
+        self.columns = np.empty(10)
 
     def __str__(self) -> str:
-        boardstring = ""
-        for i in range(10):
-            board_row = " ".join(self.board[i])
-            boardstring += board_row +  "\n"
+        # boardstring = ""
+        # for i in range(10):
+        #     board_row = "".join(self.board[i])
+        #     boardstring += board_row +  "\n"
         
-        return boardstring
+        # return boardstring
+        return str(self.board)
     
     def define_occupied(self, rows, cols):
-        self.rows = rows
-        self.columns = cols
+        self.rows = np.array(rows, dtype=np.int64)
+        self.columns = np.array(cols, dtype=np.int64)
 
     def change_occupied_posi(self,row: int ,col: int):
         num = int(self.rows[row])
@@ -62,7 +49,7 @@ class Board:
         self.columns[col] = str(num - 1) 
 
     def place_piece(self, row: int, col: int, type: str):
-        self.board[row][col] = type
+        self.board[row, col] = type
         if(type != 'W' and type != '.'):
             self.change_occupied_posi(row,col)
         
@@ -70,7 +57,7 @@ class Board:
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         
-        return self.board[row][col]
+        return str(self.board[row][col])
 
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
@@ -83,7 +70,10 @@ class Board:
         respectivamente."""
 
         return (self.get_value(row, col-1), self.get_value(row, col+1))
-
+    
+    def copy_board(self):
+        return np.copy(self.board)
+    
     @staticmethod
     def parse_instance():
         """Lê o test do standard input (stdin) que é passado como argumento
@@ -105,16 +95,20 @@ class Board:
 
         hintnum = int(sys.stdin.readline())
 
+        parse_board.hints = np.empty(hintnum, dtype=object)
+
         for i in range(hintnum):
             hint = sys.stdin.readline().split()
-            parse_board.place_piece(int(hint[1]), int(hint[2]), hint[3])
-            parse_board.simplify_board(int(hint[1]), int(hint[2]), hint[3])
+            if hint[3] == 'C' or hint[3] == 'W':
+                parse_board.place_piece(int(hint[1]), int(hint[2]), hint[3])
+                parse_board.simplify_board(int(hint[1]), int(hint[2]), hint[3])
 
-        
+            else: parse_board.hints[i] = np.array([hint[1], hint[2], hint[3]])
+
         return parse_board
     
     def fill_empty(self,row: int, col: int , type: str):
-        if (self.get_value(row ,col) == ''):
+        if (self.get_value(row ,col) == ' '):
             self.place_piece(row,col,type)  
 
 
@@ -124,18 +118,16 @@ class Board:
     def place_water(self, list:str):
         idx = 0
         if (list == 'r'): 
-            for elem in self.rows:
-                if (int(elem) == 0):
-                    for i  in range(0,10):
-                        self.fill_empty(idx,i ,'.')         
-                idx+=1 
+            zeros = np.where(self.rows == 0)
+            for elem in zeros[0]:
+                empty = np.where(self.board[elem] == '')
+                for i in empty:
+                    self.place_piece(elem,i ,'.')
         else:
-
-            for elem in self.columns:
-                if (int(elem) == 0):
-                    for i  in range(0,10):
-                        self.fill_empty(i,idx ,'.')                     
-                idx+=1 
+            zeros = np.where(self.columns == 0)
+            for i in range(10):
+                for elem in zeros[0]:
+                    self.fill_empty(i, elem,'.')                     
 
 
     def simplify_right_circle(self,row: int, col: int):
@@ -252,7 +244,6 @@ class Board:
             self.simplify_around_top(row, col)
 
         elif((type == 'B' or type == 'b')):
-            print("entrei no BBBBBBBB")
             self.simplify_around_bottom(row, col)
         
         elif((type == 'L' or type == 'l')):
@@ -410,6 +401,24 @@ class Board:
 
     # TODO: outros metodos da classe
 
+class BimaruState:
+    state_id = 0
+
+    def __init__(self, board):
+        self.board = board
+        self.id = BimaruState.state_id
+        BimaruState.state_id += 1
+
+    def __lt__(self, other):
+        return self.id < other.id
+    
+    def get_board(self):
+        return self.board
+    
+    def copy_board(self) -> Board:
+        return self.get_board().copy_board()
+
+    # TODO: outros metodos da classe
 
 class Bimaru(Problem):
     def __init__(self, board: Board):
@@ -428,8 +437,15 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        # TODO
-        pass
+        result_board = state.copy_board()
+        x = action[0]
+        y = action[1]
+        boat = action[2]
+        direction = action[3]
+
+        if boat == 1:
+            result_board.fill_empty(x, y, "c")
+            result_board.simplify_board(x, y, "c")
 
     def goal_test(self, state: BimaruState):
         """Retorna True se e só se o estado passado como argumento é
@@ -456,7 +472,7 @@ if __name__ == "__main__":
     board = Board.parse_instance()
 
 
-    """
+   
     board.place_water('r')
     print("para as linhas")
 
@@ -501,7 +517,7 @@ if __name__ == "__main__":
 
     print("(1,0)")
     print(board.get_value(1,0))
-    """
+   
     # Imprimir valores adjacentes
 
     print(board.adjacent_vertical_values(3, 3))
