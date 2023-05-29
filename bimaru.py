@@ -5,7 +5,7 @@
 # Grupo 00:
 # 00000 Nome1
 # 00000 Nome2
-
+from copy import deepcopy
 from operator import index
 from re import X
 import sys
@@ -28,6 +28,7 @@ class Board:
         self.board = np.full((10,10), fill_value=' ' ,dtype=np.str_)
         self.rows = np.empty(10)
         self.columns = np.empty(10)
+        self.placed = [0,0,0,0]
 
     def __str__(self) -> str:
         # boardstring = ""
@@ -58,6 +59,15 @@ class Board:
         """Devolve o valor na respetiva posição do tabuleiro."""
         
         return str(self.board[row][col])
+    
+    def get_placed(self):
+        return self.placed
+    
+    def get_rows(self):
+        return self.rows
+    
+    def get_columns(self):
+        return self.columns
 
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
@@ -100,8 +110,9 @@ class Board:
         for i in range(hintnum):
             hint = sys.stdin.readline().split()
             if hint[3] == 'C' or hint[3] == 'W':
-                parse_board.place_piece(int(hint[1]), int(hint[2]), hint[3])
-                parse_board.simplify_board(int(hint[1]), int(hint[2]), hint[3])
+                parse_board.fill_empty(int(hint[1]), int(hint[2]), hint[3])
+                if hint[3] == 'C':
+                    parse_board.water_around_boat(int(hint[2]), int(hint[1]), 1, 0)
 
             else: parse_board.hints[i] = np.array([hint[1], hint[2], hint[3]])
 
@@ -120,7 +131,7 @@ class Board:
         if (list == 'r'): 
             zeros = np.where(self.rows == 0)
             for elem in zeros[0]:
-                empty = np.where(self.board[elem] == '')
+                empty = np.where(self.board[elem] == ' ')
                 for i in empty:
                     self.place_piece(elem,i ,'.')
         else:
@@ -130,274 +141,85 @@ class Board:
                     self.fill_empty(i, elem,'.')                     
 
 
-    def simplify_right_circle(self,row: int, col: int):
-                                               #estar no meio
-        self.fill_empty(row , col + 1 , '.')
-        self.fill_empty(row + 1, col , '.')
-        self.fill_empty(row + 1, col + 1 , '.')
+    def water_around_boat(self, x, y, size, direction):
+
+        left = x - 1 > -1
+        top = y - 1 > -1
+
+        if direction == 0:
+            right = x + size < 10
+            bottom = y + 1 < 10 
 
 
-    def simplify_right_top(self,row: int, col: int):
-                                               #estar no meio
-        self.fill_empty(row , col + 1 , '.')
-        self.fill_empty(row - 1, col , '.')
+            if left: self.fill_empty(y, x-1, '.')
 
-    def simplify_right_bottom(self,row: int, col: int):
-                                               #estar no meio
-        self.fill_empty(row + 1 , col, '.')
-        self.fill_empty(row, col + 1, '.')
+            if right: self.fill_empty(y, x+size, '.')
 
-
-    def simplify_right_left(self,row: int, col: int):
-                                               #estar no meio
-        self.fill_empty(row + 1 , col, '.')
-        self.fill_empty(row - 1, col , '.')
-
-    def simplify_left_circle(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row - 1, col , '.')
-        self.fill_empty(row , col - 1 , '.')
-        self.fill_empty(row + 1, col , '.')
-
-    def simplify_left_top(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row - 1, col , '.')
-        self.fill_empty(row , col - 1 , '.')
-    
-    def simplify_left_bottom(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row + 1, col , '.')
-        self.fill_empty(row , col - 1 , '.')
-
-    def simplify_left_right(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row + 1, col , '.')
-        self.fill_empty(row - 1 , col, '.')
-
-
-    def simplify_bottom_circle(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row + 1, col , '.')
-        self.fill_empty(row  , col -1, '.')
-        self.fill_empty(row , col + 1, '.')
-
-    def simplify_bottom_right(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row + 1, col , '.')
-        self.fill_empty(row , col + 1, '.')
-
-    def simplify_bottom_left(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row + 1, col , '.')
-        self.fill_empty(row , col -  1, '.')
-
-    def simplify_bottom_top(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row, col + 1 , '.')
-        self.fill_empty(row , col -  1, '.')
-
-    def simplify_above_circle(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row - 1, col  , '.')
-        self.fill_empty(row , col -  1, '.')
-        self.fill_empty(row , col + 1, '.')
-
-    def simplify_above_right(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row - 1, col  , '.')
-        self.fill_empty(row , col + 1, '.')
-
-    def simplify_above_left(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row - 1, col  , '.')
-        self.fill_empty(row , col - 1, '.')
-
-    def simplify_above_bottom(self,row: int, col: int):                    #se  estiver no meio
-        self.fill_empty(row, col + 1 , '.')
-        self.fill_empty(row , col - 1, '.')
-
-
-    def simplify_around(self,row: int, col: int):
-        self.fill_empty(row + 1, col + 1 , '.')
-        self.fill_empty(row + 1, col - 1 , '.')
-        self.fill_empty(row - 1, col + 1 , '.')
-        self.fill_empty(row - 1, col - 1 , '.')
-
-    def simplify_around_left(self,row: int, col: int):
-        self.fill_empty(row + 1, col , '.')
-        self.fill_empty(row , col - 1 , '.')
-        self.fill_empty(row - 1, col , '.')
-
-    def simplify_around_top(self,row: int, col: int):
-        self.fill_empty(row , col + 1 , '.')
-        self.fill_empty(row , col - 1 , '.')
-        self.fill_empty(row - 1, col , '.')
-
-    def simplify_around_bottom(self,row: int, col: int):
-        self.fill_empty(row + 1, col , '.')
-        self.fill_empty(row , col - 1 , '.')
-        self.fill_empty(row , col + 1 , '.')
-
-    def simplify_around_right(self,row: int, col: int):
-        self.fill_empty(row + 1, col , '.')
-        self.fill_empty(row - 1, col , '.')
-        self.fill_empty(row , col + 1 , '.')
-        
-
-    def auxiliar_simplify_board(self,row: int, col: int , type :str):
-        self.simplify_around(row,col)
-
-        if (type == 'C' or type == 'c'):
-            self.simplify_around_left(row, col)
-            self.fill_empty(row , col + 1 , '.')
-    
-        elif((type == 'T' or type == 't')):
-            self.simplify_around_top(row, col)
-
-        elif((type == 'B' or type == 'b')):
-            self.simplify_around_bottom(row, col)
-        
-        elif((type == 'L' or type == 'l')):
-            self.simplify_around_left(row, col)
-        
-        elif((type == 'R' or type == 'r')):
-            self.simplify_around_right(row, col)
-    
-    def simplify_board(self,row: int, col: int,type: str):
-        if(type != 'W' or type != 'w'):
-            if(((col - 1) == -1) and (col == 0)):           #1 coluna
-                if((row - 1) == -1):           #estar canto esq superior
-                    if (type == 'C' or type == 'c'):
-                        self.fill_empty(row + 1, col , '.')
-                        self.fill_empty(row + 1, col + 1 , '.')
-                        self.fill_empty(row , col + 1 , '.')
-
-                        # self.simplify_right_circle(row,col)
-                    elif((type == 'T' or type == 't')):
-                        self.fill_empty(row + 1, col + 1 , '.')
-                        self.fill_empty(row , col + 1 , '.')
-                    
-                    else:
-                        if((type == 'L' or type == 'l')):
-                            self.fill_empty(row + 1, col , '.')
-                            self.fill_empty(row + 1, col + 1 , '.')
-                elif((row + 1) == 10):        #estar canto esq inferior
-                    if (type == 'C' or type == 'c'):
-                        self.fill_empty(row - 1, col , '.')
-                        self.fill_empty(row - 1, col + 1 , '.')
-                        self.fill_empty(row , col + 1 , '.')
-
-                    elif((type == 'B' or type == 'b')):
-                        self.fill_empty(row - 1, col - 1 , '.')
-                        self.fill_empty(row , col + 1 , '.')
-                    
-                    else:
-                        if((type == 'L' or type == 'l')):
-                            self.fill_empty(row - 1, col , '.')
-                            self.fill_empty(row - 1, col + 1 , '.')
-                else:
-                    self.fill_empty(row + 1, col + 1, '.')
-                    self.fill_empty(row - 1, col + 1 , '.')
-                    if (type == 'C' or type == 'c'):
-                        self.simplify_right_circle(row, col)
-                    
-                    elif (type == 'T' or type == 't'):
-                        self.simplify_right_top(row, col)
-
-                    elif((type == 'M' or type == 'm')):
-                        self.fill_empty(row, col + 1 , '.')
-
-                    elif((type == 'B' or type == 'b')):
-                        self.simplify_right_bottom(row, col)
-                    
-                    else:       
-                        if((type == 'L' or type == 'l')):
-                            self.simplify_right_left(row, col)
-
-            elif(((col + 1) == 10)and (col == 9)):           #10 coluna
-
-                if((row - 1) == -1):           #estar canto dir superior
-                    self.fill_empty(row + 1, col - 1 , '.')
-
-                    if (type == 'C' or type == 'c'):
-                        self.fill_empty(row + 1, col , '.')
-                        self.fill_empty(row , col - 1 , '.')
-                    
-                    elif((type == 'R' or type == 'r')):
-                        self.fill_empty(row + 1, col, '.')
-                    
-                    else:
-                        if((type == 'T' or type == 't')):
-                            self.fill_empty(row, col - 1, '.')
-            
-
-                elif((row + 1) == 10):        #estar canto dir inferior
-
-                    self.fill_empty(row - 1, col - 1 , '.')
-
-                    if (type == 'C' or type == 'c'):
-                        self.fill_empty(row - 1, col , '.')
-                        self.fill_empty(row , col - 1 , '.')
-
-                    elif((type == 'B' or type == 'b')):
-                        self.fill_empty(row, col - 1 , '.')
-            
-                    else:
-                        if((type == 'R' or type == 'r')):
-                            self.fill_empty(row - 1, col , '.')
-
-                else:
-                    self.fill_empty(row - 1, col - 1, '.')
-                    self.fill_empty(row + 1, col - 1 , '.')
-
-                    if (type == 'C' or type == 'c'):
-                        self.simplify_left_circle(row, col)
-                    
-                    elif (type == 'T' or type == 't'):
-                        self.simplify_left_top(row, col)
-
-                    elif((type == 'M' or type == 'm')):
-                        self.fill_empty(row, col - 1 , '.')
-
-                    elif((type == 'B' or type == 'b')):
-                        self.simplify_left_bottom(row, col)
-                    
-                    else:       
-                        if((type == 'R' or type == 'r')):
-                            self.simplify_left_right(row, col)
-
-
-
-            elif(((row + 1) == -1)and ( 0 < col < 9)):           #1 linha 
-                    self.fill_empty(row + 1, col - 1, '.')
-                    self.fill_empty(row  + 1, col + 1 , '.')
-
-                    if (type == 'C' or type == 'c'):
-                        self.simplify_bottom_circle(row,col)
-                    
-                    elif((type == 'R' or type == 'r')):
-                        self.simplify_bottom_right(row,col)
-
-                    elif((type == 'M' or type == 'm')):
-                        self.fill_empty(row + 1, col, '.')
-
-                    elif((type == 'L' or type == 'l')):
-                        self.simplify_left_bottom(row, col)
-                    
-                    elif((type == 'T' or type == 't')):
-                        self.simplify_left_top(row, col)
-
-
-            elif(((row + 1) == 10)and ( 0 < col < 9)):           #10 linha 
-                    self.fill_empty(row - 1, col - 1, '.')
-                    self.fill_empty(row - 1, col + 1 , '.')
-
-                    if (type == 'C' or type == 'c'):
-                        self.simplify_above_circle(row,col)
-                    
-                    elif((type == 'R' or type == 'r')):
-                        self.simplify_above_right(row,col)
-
-                    elif((type == 'M' or type == 'm')):
-                        self.fill_empty(row - 1, col, '.')
-
-                    elif((type == 'L' or type == 'l')):
-                        self.simplify_above_left(row, col)
-                    
-                    elif((type == 'B' or type == 'b')):
-                        self.simplify_above_bottom(row, col)
+            if bottom:
+                for i in range(size):
+                    self.fill_empty(y+1, x+i, '.')
+                if left: self.fill_empty(y+1, x-1, '.')
+                if right: self.fill_empty(y+1, x+size, '.')
                 
-            else:                                                #estao no meio 
-                self.auxiliar_simplify_board(row, col , type)
+            if top:
+                for i in range(size):
+                    self.fill_empty(y-1, x+i, '.')
+                if left: self.fill_empty(y-1, x-1, '.')
+                if right: self.fill_empty(y-1, x+size, '.')
+
+        
+        elif direction == 1:
+            right = x + 1 < 10
+            bottom = y + size < 10 
+
+            if left:
+                for i in range(size):
+                    self.fill_empty(y+i, x-1, '.')
+                if top: self.fill_empty(y-1, x-1, '.')
+                if bottom: self.fill_empty(y+size, x-1, '.')
+
+            if right:
+                for i in range(size):
+                    self.fill_empty(y+i, x+1, '.')
+                if top: self.fill_empty(y-1, x+1, '.')
+                if bottom: self.fill_empty(y+size, x+1, '.')
+
+            if bottom: self.fill_empty(y+size, x, '.')
+            if top: self.fill_empty(y-1, x, '.')
+
+    def place_boat(self, x, y, size, direction, hint, hint_data):
+        if hint:
+            self.fill_empty(hint_data[0], hint_data[1], hint_data[2])
+        
+        if direction == 0:
+            self.fill_empty(y, x, 'l')
+            for i in range(size):
+                self.fill_empty(y, x+i, 'm')
+                self.columns[x+i] -= 1
+            self.fill_empty(y, x+size, 'r')
+            
+            self.columns[x] -= 1
+            self.columns[x+size] -= 1
+            self.rows[y] -= size
+
+
+        else:
+            self.fill_empty(y, x, 't')
+            for i in range(size):
+                self.fill_empty(y+i, x, 'm')
+                self.columns[y+i] -= 1
+            self.fill_empty(y+size, x, 'b')
+
+            self.columns[y] -= 1
+            self.columns[y+size] -= 1
+            self.rows[x] -= size
+
+        self.placed[size-1] += 1
+
+
+    
+    def get_hints(self):
+        return self.hints
 
     # TODO: outros metodos da classe
 
@@ -429,23 +251,40 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        # TODO
-        pass
+        state_board = state.get_board()
+
+        if state_board.get_placed()[3] != 4:
+            fits4 = np.where(state_board.get_columns() >= 4)
+
+            for i in fits4:
+                hint_col = np.where(state_board.get_hints()[1] == i)
+            
+            
+
+
 
     def result(self, state: BimaruState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        result_board = state.copy_board()
-        x = action[0]
-        y = action[1]
-        boat = action[2]
-        direction = action[3]
+        
+        result_board = deepcopy(state.get_board())
 
-        if boat == 1:
+        x = int(action[0])
+        y = int(action[1])
+        size = int(action[2])
+        direction = int(action[3])
+        hint = action[4]
+        hint_data = action[5]
+
+        if size == 1:
             result_board.fill_empty(x, y, "c")
-            result_board.simplify_board(x, y, "c")
+        
+        else:
+            result_board.place_boat(x, y, size, direction, hint, hint_data)
+
+        result_board.water_around_boat(x,y,size,direction)
 
     def goal_test(self, state: BimaruState):
         """Retorna True se e só se o estado passado como argumento é
@@ -474,49 +313,9 @@ if __name__ == "__main__":
 
    
     board.place_water('r')
-    print("para as linhas")
-
-    print(board)
-
-
-    print("(8,8)")
-    print(board.get_value(8,8))
-
-    print("(8,7)")
-    print(board.get_value(8,7))
-
-    print("(8,9)")
-    print(board.get_value(8,9))
-
-    print("(9,9)")
-    print(board.get_value(9,9))
-
-    print("(8,9)")
-    print(board.get_value(8,9))
-
-    print("(7,9)")
-    print(board.get_value(7,9))
-
-    print("(7,7)")
-    print(board.get_value(7,9))
-
-    print("(7,8)")
-    print(board.get_value(7,8))
-
-
-
-
-
-
     board.place_water('c')
-    print("para as colu")
+    # print("para as colu")
     print(board)
-
-    print("(0,1)")
-    print(board.get_value(0,1))
-
-    print("(1,0)")
-    print(board.get_value(1,0))
    
     # Imprimir valores adjacentes
 
