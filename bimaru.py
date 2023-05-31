@@ -6,8 +6,6 @@
 # 00000 Nome1
 # 00000 Nome2
 from copy import deepcopy
-from operator import index
-from re import X
 import sys
 import numpy as np
 from search import (
@@ -29,6 +27,7 @@ class Board:
         self.rows = np.empty(10)
         self.columns = np.empty(10)
         self.placed = [0,0,0,0]
+       #self.hints = np.empty(hintnum, dtype=object)
 
     def __str__(self) -> str:
         # boardstring = ""
@@ -51,7 +50,7 @@ class Board:
 
     def place_piece(self, row: int, col: int, type: str):
         self.board[row, col] = type
-        if(type != 'W' and type != '.'):
+        if(type != 'W' and type != '.' and type != ' '):
             self.change_occupied_posi(row,col)
         
 
@@ -105,17 +104,37 @@ class Board:
 
         hintnum = int(sys.stdin.readline())
 
-        parse_board.hints = np.empty(hintnum, dtype=object)
+        parse_board.hints = np.empty(hintnum, dtype=object)                      #podemos usar parse_board.hints fora desta funcao???
 
         for i in range(hintnum):
             hint = sys.stdin.readline().split()
-            if hint[3] == 'C' or hint[3] == 'W':
-                parse_board.fill_empty(int(hint[1]), int(hint[2]), hint[3])
-                if hint[3] == 'C':
-                    parse_board.water_around_boat(int(hint[2]), int(hint[1]), 1, 0)
+            row = int(hint[1])
+            col = int(hint[2])
+            letter = hint[3]
 
-            else: parse_board.hints[i] = np.array([hint[1], hint[2], hint[3]])
+            if letter == 'C' or letter == 'W':
+                parse_board.fill_empty(row, col, letter)
+            
+            else: parse_board.hints[i] = np.array([row, col, letter])
 
+            if letter != 'W':
+                parse_board.water_around_boat(col, row, 1, 0) 
+
+            if letter == 'T' or letter == 'M':
+                parse_board.place_piece(row + 1, col, ' ')
+            
+            if letter == 'B' or letter == 'M':
+                parse_board.place_piece(row -1, col, ' ')
+            
+            if letter == 'R' or letter == 'M':
+                parse_board.place_piece(row, col + 1, ' ')
+            
+            if letter == 'L' or letter == 'M':
+                parse_board.place_piece(row, col - 1, ' ')
+            
+
+
+        parse_board.place_water()
         return parse_board
     
     def fill_empty(self,row: int, col: int , type: str):
@@ -126,19 +145,16 @@ class Board:
                # if (self.is_empty(idx,i)):
                 #            self.place_piece(idx,i,'.')
 
-    def place_water(self, list:str):
-        idx = 0
-        if (list == 'r'): 
-            zeros = np.where(self.rows == 0)
-            for elem in zeros[0]:
-                empty = np.where(self.board[elem] == ' ')
-                for i in empty:
-                    self.place_piece(elem,i ,'.')
-        else:
-            zeros = np.where(self.columns == 0)
-            for i in range(10):
-                for elem in zeros[0]:
-                    self.fill_empty(i, elem,'.')                     
+    def place_water(self):
+        zeros_rows = np.where(self.rows == 0)
+        for elem in zeros_rows[0]:
+            empty = np.where(self.board[elem] == ' ')
+            for i in empty:
+                self.place_piece(elem,i ,'.')
+        zeros_cols = np.where(self.columns == 0)
+        for i in range(10):
+            for elem in zeros_cols[0]:
+                self.fill_empty(i, elem,'.')                     
 
 
     def water_around_boat(self, x, y, size, direction):
@@ -187,13 +203,11 @@ class Board:
             if bottom: self.fill_empty(y+size, x, '.')
             if top: self.fill_empty(y-1, x, '.')
 
-    def place_boat(self, x, y, size, direction, hint, hint_data):
-        if hint:
-            self.fill_empty(hint_data[0], hint_data[1], hint_data[2])
+    def place_boat(self, x, y, size, direction):
         
         if direction == 0:
             self.fill_empty(y, x, 'l')
-            for i in range(size):
+            for i in range(size-1):
                 self.fill_empty(y, x+i, 'm')
                 self.columns[x+i] -= 1
             self.fill_empty(y, x+size, 'r')
@@ -205,10 +219,10 @@ class Board:
 
         else:
             self.fill_empty(y, x, 't')
-            for i in range(size):
+            for i in range(size-1):
                 self.fill_empty(y+i, x, 'm')
                 self.columns[y+i] -= 1
-            self.fill_empty(y+size, x, 'b')
+            self.fill_empty(y+size-1, x, 'b')
 
             self.columns[y] -= 1
             self.columns[y+size] -= 1
@@ -216,10 +230,70 @@ class Board:
 
         self.placed[size-1] += 1
 
+        self.water_around_boat(x, y, size, direction)
+
 
     
     def get_hints(self):
         return self.hints
+
+    def fits_boat(self,size):
+        counter = 0  
+        lista_posi = []
+
+        fits = np.where(self.get_columns() >= size)
+        
+        for i in fits[0]:
+            j = 0
+            while j < 10:
+                counter = 0
+                l = j
+                while l < 10:
+                    slot = self.get_value(l,i)
+                    if counter < size:
+                        if (slot == ' '):
+                            counter += 1
+                            l+=1
+
+                        else:
+                            counter = 0
+                            j = l + 1
+                            break
+
+                    elif (counter == size):
+                        lista_posi.append([l - size , i])
+                        break
+                j+=1
+
+        fits = np.where(self.get_rows() >= size)
+
+        for i in fits[0]:
+            j = 0
+            while j < 10:
+                counter = 0
+                l = j
+                while l < 10:
+                    slot = self.get_value(i,l)
+                    if counter < size:
+                        if (slot == ' '):
+                            counter += 1
+                            l+=1
+
+                        else:
+                            counter = 0
+                            j = l + 1
+                            break
+
+                    elif (counter == size):
+                        lista_posi.append([i , l - size])
+                        break
+                j+=1
+
+        return lista_posi
+                    
+                            
+    
+
 
     # TODO: outros metodos da classe
 
@@ -251,16 +325,29 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
+
+        
         state_board = state.get_board()
 
-        if state_board.get_placed()[3] != 4:
-            fits4 = np.where(state_board.get_columns() >= 4)
+        actions = []
 
-            for i in fits4:
-                hint_col = np.where(state_board.get_hints()[1] == i)
-            
-            
+        if state_board.get_placed()[3] != 1:
+            fits = np.where(state_board.get_columns() >= 4)
+            size = 4
+        elif state_board.get_placed()[2] != 2:
+            fits = np.where(state_board.get_columns() >= 3)
+            size = 3
+        elif state_board.get_placed()[1] != 3:
+            fits = np.where(state_board.get_columns() >= 2)
+            size = 2
+        elif state_board.get_placed()[0] != 4:
+            fits = np.where(state_board.get_columns() >= 1)
+            size = 1
 
+        else: return ()
+
+        print(state_board.fits_boat(4))
+            
 
 
     def result(self, state: BimaruState, action):
@@ -275,8 +362,6 @@ class Bimaru(Problem):
         y = int(action[1])
         size = int(action[2])
         direction = int(action[3])
-        hint = action[4]
-        hint_data = action[5]
 
         if size == 1:
             result_board.fill_empty(x, y, "c")
@@ -310,17 +395,12 @@ if __name__ == "__main__":
     # Imprimir para o standard output no formato indicado.
     board = Board.parse_instance()
 
-
-   
-    board.place_water('r')
-    board.place_water('c')
     # print("para as colu")
     print(board)
+    print(board.fits_boat(4))
+    board.place_boat(9, 0, 4, 1)
+    board.water_around_boat(9,0,4,1)
+    board.place_water()
+    print(board)
    
-    # Imprimir valores adjacentes
-
-    print(board.adjacent_vertical_values(3, 3))
-    print(board.adjacent_horizontal_values(3, 3))
-    print(board.adjacent_vertical_values(1, 0))
-    print(board.adjacent_horizontal_values(1, 0))
-    print(board.get_value(0, 0))
+    
