@@ -18,6 +18,24 @@ from search import (
     recursive_best_first_search,
 )
 
+class BimaruState:
+    state_id = 0
+
+    def __init__(self, board):
+        self.board = board
+        self.id = BimaruState.state_id
+        BimaruState.state_id += 1
+
+    def __lt__(self, other):
+        return self.id < other.id
+    
+    def get_state_board(self):
+        return self.board
+    
+    def copy_board(self):
+        return self.get_board().copy_board()
+
+    # TODO: outros metodos da classe
 
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
@@ -118,32 +136,42 @@ class Board:
             else: parse_board.hints[i] = np.array([row, col, letter])
 
             if letter != 'W':
-                parse_board.water_around_boat(col, row, 1, 0) 
+                parse_board.water_around_boat(row, col, 1, 0) 
 
-            if letter == 'T' or letter == 'M':
+            if letter == 'T':
                 parse_board.place_piece(row + 1, col, ' ')
+                # parse_board.place_piece(row + 2, col - 1, '.')
+                # parse_board.place_piece(row + 2, col + 1, '.')
+                
             
-            if letter == 'B' or letter == 'M':
+            elif letter == 'B':
                 parse_board.place_piece(row -1, col, ' ')
+                # parse_board.place_piece(row - 2, col - 1, '.')
+                # parse_board.place_piece(row - 2, col + 1, '.')
             
-            if letter == 'R' or letter == 'M':
+            elif letter == 'R':
                 parse_board.place_piece(row, col + 1, ' ')
+                # parse_board.place_piece(row - 1, col + 2, '.')
+                # parse_board.place_piece(row + 1, col + 2, '.')
             
-            if letter == 'L' or letter == 'M':
+            elif letter == 'L':
                 parse_board.place_piece(row, col - 1, ' ')
+                # parse_board.place_piece(row - 1, col - 2, '.')
+                # parse_board.place_piece(row + 1, col - 2, '.')
+
+            elif letter == 'M':
+                parse_board.place_piece(row + 1, col, ' ')
+                parse_board.place_piece(row -1, col, ' ')
+                parse_board.place_piece(row, col + 1, ' ')
+                parse_board.place_piece(row, col - 1, ' ')
+
             
-
-
         parse_board.place_water()
         return parse_board
     
     def fill_empty(self,row: int, col: int , type: str):
         if (self.get_value(row ,col) == ' '):
             self.place_piece(row,col,type)  
-
-
-               # if (self.is_empty(idx,i)):
-                #            self.place_piece(idx,i,'.')
 
     def place_water(self):
         zeros_rows = np.where(self.rows == 0)
@@ -157,81 +185,80 @@ class Board:
                 self.fill_empty(i, elem,'.')                     
 
 
-    def water_around_boat(self, x, y, size, direction):
+    def water_around_boat(self, row, col, size, direction):
 
-        left = x - 1 > -1
-        top = y - 1 > -1
+        left = col - 1 > -1
+        top = row - 1 > -1
 
         if direction == 0:
-            right = x + size < 10
-            bottom = y + 1 < 10 
+            right = col + size < 10
+            bottom = row + 1 < 10 
 
 
-            if left: self.fill_empty(y, x-1, '.')
+            if left: self.fill_empty(row, col-1, '.')
 
-            if right: self.fill_empty(y, x+size, '.')
+            if right: self.fill_empty(row, col+size, '.')
 
             if bottom:
                 for i in range(size):
-                    self.fill_empty(y+1, x+i, '.')
-                if left: self.fill_empty(y+1, x-1, '.')
-                if right: self.fill_empty(y+1, x+size, '.')
+                    self.fill_empty(row+1, col+i, '.')
+                if left: self.fill_empty(row+1, col-1, '.')
+                if right: self.fill_empty(row+1, col+size, '.')
                 
             if top:
                 for i in range(size):
-                    self.fill_empty(y-1, x+i, '.')
-                if left: self.fill_empty(y-1, x-1, '.')
-                if right: self.fill_empty(y-1, x+size, '.')
+                    self.fill_empty(row-1, col+i, '.')
+                if left: self.fill_empty(row-1, col-1, '.')
+                if right: self.fill_empty(row-1, col+size, '.')
 
         
         elif direction == 1:
-            right = x + 1 < 10
-            bottom = y + size < 10 
+            right = col + 1 < 10
+            bottom = row + size < 10 
 
             if left:
                 for i in range(size):
-                    self.fill_empty(y+i, x-1, '.')
-                if top: self.fill_empty(y-1, x-1, '.')
-                if bottom: self.fill_empty(y+size, x-1, '.')
+                    self.fill_empty(row+i, col-1, '.')
+                if top: self.fill_empty(row-1, col-1, '.')
+                if bottom: self.fill_empty(row+size, col-1, '.')
 
             if right:
                 for i in range(size):
-                    self.fill_empty(y+i, x+1, '.')
-                if top: self.fill_empty(y-1, x+1, '.')
-                if bottom: self.fill_empty(y+size, x+1, '.')
+                    self.fill_empty(row+i, col+1, '.')
+                if top: self.fill_empty(row-1, col+1, '.')
+                if bottom: self.fill_empty(row+size, col+1, '.')
 
-            if bottom: self.fill_empty(y+size, x, '.')
-            if top: self.fill_empty(y-1, x, '.')
+            if bottom: self.fill_empty(row+size, col, '.')
+            if top: self.fill_empty(row-1, col, '.')
 
-    def place_boat(self, x, y, size, direction):
+    def place_boat(self, row, col, size, direction):
         
         if direction == 0:
-            self.fill_empty(y, x, 'l')
+            self.fill_empty(row, col, 'l')
             for i in range(size-1):
-                self.fill_empty(y, x+i, 'm')
-                self.columns[x+i] -= 1
-            self.fill_empty(y, x+size, 'r')
+                self.fill_empty(row, col+i, 'm')
+                self.columns[col+i] -= 1
+            self.fill_empty(row, col+size, 'r')
             
-            self.columns[x] -= 1
-            self.columns[x+size] -= 1
-            self.rows[y] -= size
+            self.columns[col] -= 1
+            self.columns[col+size] -= 1
+            self.rows[row] -= size
 
 
         else:
-            self.fill_empty(y, x, 't')
+            self.fill_empty(row, col, 't')
             for i in range(size-1):
-                self.fill_empty(y+i, x, 'm')
-                self.columns[y+i] -= 1
-            self.fill_empty(y+size-1, x, 'b')
+                self.fill_empty(row+i, col, 'm')
+                self.rows[row+i] -= 1
+            self.fill_empty(row+size-1, col, 'b')
 
-            self.columns[y] -= 1
-            self.columns[y+size] -= 1
-            self.rows[x] -= size
+            self.rows[row] -= 1
+            self.rows[row+size] -= 1
+            self.columns[col] -= size
 
         self.placed[size-1] += 1
 
-        self.water_around_boat(x, y, size, direction)
-
+        self.water_around_boat(row, col, size, direction)
 
     
     def get_hints(self):
@@ -260,8 +287,8 @@ class Board:
                             j = l + 1
                             break
 
-                    elif (counter == size):
-                        lista_posi.append([l - size , i])
+                    if (counter == size):
+                        lista_posi.append([l - size , i, 1, size])
                         break
                 j+=1
 
@@ -285,69 +312,123 @@ class Board:
                             break
 
                     elif (counter == size):
-                        lista_posi.append([i , l - size])
+                        lista_posi.append([i , l - size, 0, size])
                         break
                 j+=1
 
         return lista_posi
                     
-                            
+    def verify(self,row,column,direction):
+        if direction == 0:
+            counter = 0
+            num = self.row[row]
+            for i in range(10):
+                if self.get_value(row ,i) == ' ':
+                    counter += 1
+                if counter >= num:
+                    break
+            if counter < num:
+                return False
+            return True
+        else:
+            counter = 0
+            num = self.columns[column]
+            for i in range(10):
+                if self.get_value(i,column) == ' ':
+                    counter += 1
+                if counter >= num:
+                    break
+            if counter < num:
+                return False
+            return True
+        
     
+    def verify_free_slots(self, row, col, size, direction):
+
+        left = col - 1 > -1
+        top = row - 1 > -1
+
+        if direction == 0:
+            right = col + size < 10
+            bottom = row + 1 < 10 
 
 
-    # TODO: outros metodos da classe
+            if left and not self.verify(row, col - 1, 1): return False
 
-class BimaruState:
-    state_id = 0
+            if right and not self.verify(row, col + size, 1): return False
 
-    def __init__(self, board):
-        self.board = board
-        self.id = BimaruState.state_id
-        BimaruState.state_id += 1
+            if bottom and not self.verify(row + 1, col, 0): return False
+                
+            if top and not self.verify(row - 1, col, 0): return False
 
-    def __lt__(self, other):
-        return self.id < other.id
-    
-    def get_board(self):
-        return self.board
-    
-    def copy_board(self) -> Board:
-        return self.get_board().copy_board()
+        
+        elif direction == 1:
+            right = col + 1 < 10
+            bottom = row + size < 10 
+
+            if left and not self.verify(row, col - 1, 1): return False
+
+            if right and not self.verify(row, col + 1, 1): return False
+
+            if bottom and not self.verify(row + size, col, 0): return False
+                
+            if top and not self.verify(row - 1, col, 0): return False
+
+
 
     # TODO: outros metodos da classe
 
 class Bimaru(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        # TODO
-        pass
+        self.initial = BimaruState(board)
 
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
 
+    #Result -> devolve board com o resultado -> vemos colunas/linhas adjacentes -> adicionamos ou não
         
-        state_board = state.get_board()
+        state_board = state.get_state_board()
 
         actions = []
+        
+        placed = state_board.get_placed()
+        print(placed)
 
-        if state_board.get_placed()[3] != 1:
-            fits = np.where(state_board.get_columns() >= 4)
+        if placed[3] != 1:
+            list_posi = state_board.fits_boat(4)
             size = 4
-        elif state_board.get_placed()[2] != 2:
-            fits = np.where(state_board.get_columns() >= 3)
+        elif placed[2] != 2:
+            print("here")
+            list_posi = state_board.fits_boat(3)
             size = 3
-        elif state_board.get_placed()[1] != 3:
-            fits = np.where(state_board.get_columns() >= 2)
+        elif placed[1] != 3:
+            list_posi = state_board.fits_boat(2)
             size = 2
-        elif state_board.get_placed()[0] != 4:
-            fits = np.where(state_board.get_columns() >= 1)
+        elif placed[0] != 4:
+            list_posi = state_board.fits_boat(1)
             size = 1
 
         else: return ()
 
-        print(state_board.fits_boat(4))
-            
+        print(list_posi)
+
+        for elem in list_posi:
+            row = elem[0]
+            col = elem[1]
+            direction = elem[2]
+            size = elem[3]
+
+            left = col - 1 > -1
+            top = row - 1 > -1
+            right = col + size < 10
+            bottom = row + 1 < 10 
+
+            new_state = self.result(state , elem)
+            new_state_board = new_state.get_state_board()
+
+        return actions
 
 
     def result(self, state: BimaruState, action):
@@ -356,27 +437,48 @@ class Bimaru(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         
-        result_board = deepcopy(state.get_board())
+        result_board = deepcopy(state.get_state_board())
 
-        x = int(action[0])
-        y = int(action[1])
-        size = int(action[2])
-        direction = int(action[3])
+        row = int(action[0])
+        col = int(action[1])
+        direction = int(action[2])
+        size = int(action[3])
 
         if size == 1:
-            result_board.fill_empty(x, y, "c")
+            result_board.fill_empty(row, col, "c")
         
         else:
-            result_board.place_boat(x, y, size, direction, hint, hint_data)
+            result_board.place_boat(row, col, size, direction)
 
-        result_board.water_around_boat(x,y,size,direction)
+        result_board.water_around_boat(row,col,size,direction)
+
+        new_state = BimaruState(result_board)
+        print(new_state.board())
+        return new_state
 
     def goal_test(self, state: BimaruState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        # TODO
-        pass
+        state_board = state.get_state_board()
+
+        hints = state_board.get_hints()
+        placed = state_board.get_placed()
+
+        counter = 4
+        for i in hints:
+            if state_board.get_value(int(i[0]), int(i[1])) == i[2].lower():
+                state_board.place_piece(i[0], i[1], i[2])
+
+            else: return False
+
+        for i in placed:
+            if i == counter:
+                counter -= 1
+            else: return False
+        
+        return True
+
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
@@ -388,19 +490,15 @@ class Bimaru(Problem):
 
 if __name__ == "__main__":
 
-    # TODO:
     # Ler o ficheiro do standard input,
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
     # Imprimir para o standard output no formato indicado.
     board = Board.parse_instance()
+    problem = Bimaru(board)
+    goal_node = depth_first_tree_search(problem)
 
-    # print("para as colu")
-    print(board)
-    print(board.fits_boat(4))
-    board.place_boat(9, 0, 4, 1)
-    board.water_around_boat(9,0,4,1)
-    board.place_water()
-    print(board)
+    print(goal_node)
+    
    
     
