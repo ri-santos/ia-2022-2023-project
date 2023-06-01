@@ -40,10 +40,10 @@ class BimaruState:
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
 
-    def __init__(self, hints) -> None:
-        self.board = np.full((10,10), fill_value=' ' ,dtype=np.str_)
-        self.rows = np.empty(10)
-        self.columns = np.empty(10)
+    def __init__(self,board, rows, columns, hints) -> None:
+        self.board = board
+        self.rows = rows
+        self.columns = columns
         self.placed = [0,0,0,0]
         self.hints = hints
 
@@ -55,10 +55,6 @@ class Board:
         
         # return boardstring
         return str(self.board)
-    
-    def define_occupied(self, rows, cols):
-        self.rows = np.array(rows, dtype=np.int64)
-        self.columns = np.array(cols, dtype=np.int64)
 
     def change_occupied_posi(self,row: int ,col: int):
         num = int(self.rows[row])
@@ -113,17 +109,17 @@ class Board:
             > line = stdin.readline().split()
         """
 
-        
+        parse_board = np.full((10,10), fill_value=' ' ,dtype=np.str_)
 
         rows = sys.stdin.readline().split()[1::]
         cols = sys.stdin.readline().split()[1::]
+        
+        rows_ocuppied = np.array(rows, dtype=np.int64)
+        cols_occupied = np.array(cols, dtype=np.int64)
 
         hintnum = int(sys.stdin.readline())
 
-        hints = np.empty(hintnum, dtype=object)                      #podemos usar parse_board.hints fora desta funcao???
-        
-        parse_board = Board(hints)
-        parse_board.define_occupied(rows, cols)
+        hints = np.empty(hintnum, dtype=object)                      #podemos usar new_board.hints fora desta funcao???
 
         for i in range(hintnum):
             hint = sys.stdin.readline().split()
@@ -134,7 +130,7 @@ class Board:
             if letter == 'C' or letter == 'W':
                 parse_board.fill_empty(row, col, letter)
             
-            else: parse_board.hints[i] = np.array([row, col, str(letter)])
+            else: hints[i] = np.array([row, col, letter])
 
             if letter != 'W':
                 parse_board.water_around_boat(row, col, 1, 0) 
@@ -168,8 +164,7 @@ class Board:
 
             
         parse_board.place_water()
-        parse_board.hints = parse_board.hints[np.logical_not([element is None for element in parse_board.hints])]
-        return parse_board
+        return Board(parse_board, rows_ocuppied, cols_occupied, hints)
     
     def fill_empty(self,row: int, col: int , type: str):
         if (self.get_value(row ,col) == ' '):
@@ -196,9 +191,7 @@ class Board:
             right = col + size < 10
             bottom = row + 1 < 10 
 
-
             if left: self.fill_empty(row, col-1, '.')
-
             if right: self.fill_empty(row, col+size, '.')
 
             if bottom:
@@ -213,7 +206,6 @@ class Board:
                 if left: self.fill_empty(row-1, col-1, '.')
                 if right: self.fill_empty(row-1, col+size, '.')
 
-        
         elif direction == 1:
             right = col + 1 < 10
             bottom = row + size < 10 
@@ -243,7 +235,7 @@ class Board:
             self.fill_empty(row, col+size, 'r')
             
             self.columns[col] -= 1
-            self.columns[col+size-1] -= 1
+            self.columns[col+size] -= 1
             self.rows[row] -= size
 
 
@@ -255,7 +247,7 @@ class Board:
             self.fill_empty(row+size-1, col, 'b')
 
             self.rows[row] -= 1
-            self.rows[row+size-1] -= 1
+            self.rows[row+size] -= 1
             self.columns[col] -= size
 
         self.placed[size-1] += 1
@@ -295,7 +287,6 @@ class Board:
                 j+=1
 
         fits = np.where(self.get_rows() >= size)
-        print(fits)
 
         for i in fits[0]:
             j = 0
@@ -324,7 +315,7 @@ class Board:
     def verify(self,row,column,direction):
         if direction == 0:
             counter = 0
-            num = self.rows[row]
+            num = self.row[row]
             for i in range(10):
                 if self.get_value(row ,i) == ' ':
                     counter += 1
@@ -377,7 +368,6 @@ class Board:
                 
             if top and not self.verify(row - 1, col, 0): return False
 
-        return True
 
 
     # TODO: outros metodos da classe
@@ -394,14 +384,17 @@ class Bimaru(Problem):
     #Result -> devolve board com o resultado -> vemos colunas/linhas adjacentes -> adicionamos ou não
         
         state_board = state.get_state_board()
+
+        actions = []
         
         placed = state_board.get_placed()
+        print(placed)
 
         if placed[3] != 1:
             list_posi = state_board.fits_boat(4)
             size = 4
         elif placed[2] != 2:
-            print('ON THREEEE')
+            print("here")
             list_posi = state_board.fits_boat(3)
             size = 3
         elif placed[1] != 3:
@@ -413,18 +406,21 @@ class Bimaru(Problem):
 
         else: return ()
 
-        actions = list_posi
         print(list_posi)
+
         for elem in list_posi:
             row = elem[0]
             col = elem[1]
             direction = elem[2]
             size = elem[3]
 
+            left = col - 1 > -1
+            top = row - 1 > -1
+            right = col + size < 10
+            bottom = row + 1 < 10 
+
             new_state = self.result(state , elem)
             new_state_board = new_state.get_state_board()
-
-            if not new_state_board.verify_free_slots(row, col, size, direction): actions.remove(elem)
 
         return actions
 
@@ -449,10 +445,8 @@ class Bimaru(Problem):
             result_board.place_boat(row, col, size, direction)
 
         result_board.water_around_boat(row,col,size,direction)
-        result_board.place_water()
 
         new_state = BimaruState(result_board)
-
         return new_state
 
     def goal_test(self, state: BimaruState):
@@ -464,11 +458,10 @@ class Bimaru(Problem):
         hints = state_board.get_hints()
         placed = state_board.get_placed()
 
-        print(state_board)
         counter = 4
         for i in hints:
             if state_board.get_value(int(i[0]), int(i[1])) == i[2].lower():
-                state_board.place_piece(int(i[0]), int(i[1]), i[2])
+                state_board.place_piece(i[0], i[1], i[2])
 
             else: return False
 

@@ -22,6 +22,43 @@ if __name__ == "__main__":
         if(board[row-1][col-1] == ' '):
             board[row-1][col-1] = '.'
 
+            # if left:
+            #     if not top and not bottom:
+            #         if direction == 0:
+                        
+            #             if new_state_board.verify(row - 1,col,0) == True and new_state_board.verify(row + 1,col,0)== True and new_state_board.verify(row ,col + 1,0) and verify:
+            #                 actions += [elem]
+                    
+            #         else:
+            #             if new_state_board.verify(row - 1,col,1) == True and new_state_board.verify(row + size,col,1)== True and new_state_board.verify(row ,col + 1,1) and verify:
+            #                 actions += [elem]
+            # if top:
+            #     if direction == 0:
+            #         if new_state_board.verify(row + 1,col,0)== True and new_state_board.verify(row ,col + 1,0) and verify:
+            #             actions += [elem]
+                
+            #     else:
+            #         if right:
+            #             if new_state_board.verify(row,col + 1,1) == True  and new_state_board.verify(row + size ,col,1)== True and verify:
+            #                 actions += [elem]
+            #         if left:
+            #             if new_state_board.verify(row,col - 1,1) == True  and new_state_board.verify(row + size ,col,1)== True and verify:
+            #                 actions += [elem]
+                            
+
+            # if bottom:
+            #     if direction == 0:
+            #         if new_state_board.verify(row - 1,col,0)== True and new_state_board.verify(row ,col + 1,0) and verify and new_state_board.verify(row ,col - 1,0):
+            #             actions += [elem]
+                
+            #     elif direction == 1:
+            #         if right:
+            #             if not top and new_state_board.verify(row,col + 1,1) == True  and new_state_board.verify(row - size ,col,1)== True and verify:
+            #                 actions += [elem]
+            #         if left:
+            #             if not top and new_state_board.verify(row,col - 1,1) == True  and new_state_board.verify(row - size ,col,1)== True and verify:
+            #                 actions += [elem]
+
     
     boardstring = ""
     for i in range(10):
